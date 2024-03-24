@@ -25,13 +25,13 @@ func main() {
 	}
 
 	buffer := make([]byte, 1024)
-	n, err := conn.Read(buffer)
+	length, err := conn.Read(buffer)
 	if err != nil {
 		fmt.Println("Error reading from connection: ", err.Error())
 		os.Exit(1)
 	}
 
-	str := string(buffer[:n])
+	str := string(buffer[:length])
 	fmt.Print(str)
 
 	lines := strings.Split(str, "\r\n\r\n")
