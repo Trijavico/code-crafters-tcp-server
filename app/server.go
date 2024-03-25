@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	OK_RESPONSE = "HTTP/1.1 200 OK"
+	NOT_FOUND   = "HTTP/1.1 404 Not Found"
+)
+
 func main() {
 	fmt.Println("Logs from your program will appear here!")
 
@@ -31,20 +36,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	str := string(buffer[:r_size])
-	fmt.Print(str)
+	request := string(buffer[:r_size])
 
-	lines := strings.Split(str, "\r\n\r\n")
-	path := strings.Split(lines[0], " ")
+	lines := strings.Split(request, "\r\n")
+	path := strings.Split(lines[0], " ")[1]
 
-	if path[1] == "/" {
-		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else if strings.HasPrefix(path[1], "/echo/") {
-		value := path[1][6:]
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", len(value), value)
+	if path == "/" {
+		response := OK_RESPONSE + "\r\n\r\n"
 		_, err = conn.Write([]byte(response))
+
+	} else if strings.HasPrefix(path, "/echo/") {
+		body := path[6:]
+		response := fmt.Sprintf("%s\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(body), body)
+		_, err = conn.Write([]byte(response))
+
+	} else if path == "/user-agent" {
+		body := strings.Split(lines[2], " ")[1]
+		response := fmt.Sprintf("%s\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(body), body)
+		fmt.Println(response)
+		_, err = conn.Write([]byte(response))
+
 	} else {
-		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		response := NOT_FOUND + "\r\n\r\n"
+		_, err = conn.Write([]byte(response))
+
 	}
 
 	if err != nil {
