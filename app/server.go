@@ -37,10 +37,12 @@ func main() {
 	lines := strings.Split(str, "\r\n\r\n")
 	path := strings.Split(lines[0], " ")
 
-	if strings.HasPrefix(path[1], "/echo/") {
+	if path[1] == "/" {
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	} else if strings.HasPrefix(path[1], "/echo/") {
 		value := path[1][6:]
 		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n %s\r\n", len(value), value)
-		conn.Write([]byte(response))
+		_, err = conn.Write([]byte(response))
 	} else {
 		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
