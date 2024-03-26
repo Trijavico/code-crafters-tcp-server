@@ -47,6 +47,7 @@ func handleConn(conn net.Conn, dirname string) {
 	} else if strings.HasPrefix(path, "/files/") {
 		filename := path[7:]
 		dir_path, err := filepath.Abs(dirname)
+
 		if err != nil {
 			fmt.Println("Failed to get absolute path for dir")
 			os.Exit(1)
@@ -56,13 +57,12 @@ func handleConn(conn net.Conn, dirname string) {
 
 		content, err := os.ReadFile(abs_path)
 		if err != nil {
-			fmt.Println("Failed to get the content of the file")
-			os.Exit(1)
+			_, err = conn.Write([]byte(NOT_FOUND + "\r\n\r\n"))
+		} else {
+			response := fmt.Sprintf("%s\r\nContent-Type: application/octet-stream\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
+			fmt.Println(response)
+			_, err = conn.Write([]byte(response))
 		}
-
-		response := fmt.Sprintf("%s\r\nContent-Type: application/octet-stream\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
-		fmt.Println(response)
-		_, err = conn.Write([]byte(response))
 
 	} else {
 		response := NOT_FOUND + "\r\n\r\n"
