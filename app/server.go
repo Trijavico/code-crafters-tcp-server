@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -12,7 +14,7 @@ const (
 	NOT_FOUND   = "HTTP/1.1 404 Not Found"
 )
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, dirname string) {
 	defer conn.Close()
 
 	buffer := make([]byte, 1024)
@@ -42,6 +44,26 @@ func handleConn(conn net.Conn) {
 		fmt.Println(response)
 		_, err = conn.Write([]byte(response))
 
+	} else if strings.HasPrefix(path, "/files/") {
+		filename := path[7:]
+		dir_path, err := filepath.Abs(dirname)
+		if err != nil {
+			fmt.Println("Failed to get absolute path for dir")
+			os.Exit(1)
+		}
+		abs_path := filepath.Join(dir_path, filename)
+		fmt.Println(abs_path)
+
+		content, err := os.ReadFile(abs_path)
+		if err != nil {
+			fmt.Println("Failed to get the content of the file")
+			os.Exit(1)
+		}
+
+		response := fmt.Sprintf("%s\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
+		fmt.Println(response)
+		_, err = conn.Write([]byte(response))
+
 	} else {
 		response := NOT_FOUND + "\r\n\r\n"
 		_, err = conn.Write([]byte(response))
@@ -55,7 +77,11 @@ func handleConn(conn net.Conn) {
 }
 
 func main() {
+	dirname := flag.String("directory", "", "provide the dir name")
+	flag.Parse()
+
 	fmt.Println("Logs from your program will appear here!")
+	fmt.Println(*dirname)
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -63,14 +89,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
 
-		go handleConn(conn)
+		go handleConn(conn, *dirname)
 	}
 
 }
