@@ -12,6 +12,7 @@ import (
 const (
 	OK_RESPONSE = "HTTP/1.1 200 OK"
 	NOT_FOUND   = "HTTP/1.1 404 Not Found"
+	CREATED     = "HTTP/1.1 201 Created"
 )
 
 func handleConn(conn net.Conn, dirname string) {
@@ -45,23 +46,59 @@ func handleConn(conn net.Conn, dirname string) {
 		_, err = conn.Write([]byte(response))
 
 	} else if strings.HasPrefix(path, "/files/") {
-		filename := path[7:]
-		dir_path, err := filepath.Abs(dirname)
 
-		if err != nil {
-			fmt.Println("Failed to get absolute path for dir")
-			os.Exit(1)
-		}
-		abs_path := filepath.Join(dir_path, filename)
-		fmt.Println(abs_path)
+		switch method := strings.Split(lines[0], " ")[0]; method {
+		case "POST":
+			filename := path[7:]
+			dir_path, err := filepath.Abs(dirname)
 
-		content, err := os.ReadFile(abs_path)
-		if err != nil {
-			_, err = conn.Write([]byte(NOT_FOUND + "\r\n\r\n"))
-		} else {
-			response := fmt.Sprintf("%s\r\nContent-Type: application/octet-stream\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
+			if err != nil {
+				fmt.Println("Failed to get absolute path for dir")
+				os.Exit(1)
+			}
+			abs_path := filepath.Join(dir_path, filename)
+			fmt.Println(abs_path)
+			file, err := os.Create(abs_path)
+			defer file.Close()
+
+			if err != nil {
+				fmt.Println("Failed to create file")
+			}
+
+			body_content := lines[len(lines)-1]
+			_, err = file.Write([]byte(body_content))
+			if err != nil {
+				fmt.Println("Failed to write in the file")
+			}
+
+			response := fmt.Sprintf("%s\r\n\r\n", CREATED)
 			fmt.Println(response)
 			_, err = conn.Write([]byte(response))
+
+		case "GET":
+			filename := path[7:]
+			dir_path, err := filepath.Abs(dirname)
+
+			if err != nil {
+				fmt.Println("Failed to get absolute path for dir")
+				os.Exit(1)
+			}
+			abs_path := filepath.Join(dir_path, filename)
+			fmt.Println(abs_path)
+
+			content, err := os.ReadFile(abs_path)
+			if err != nil {
+				_, err = conn.Write([]byte(NOT_FOUND + "\r\n\r\n"))
+			} else {
+				response := fmt.Sprintf("%s\r\nContent-Type: application/octet-stream\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
+				fmt.Println(response)
+				_, err = conn.Write([]byte(response))
+			}
+		}
+
+		if err != nil {
+			fmt.Println("Failed to write to connection")
+			os.Exit(1)
 		}
 
 	} else {
@@ -70,10 +107,6 @@ func handleConn(conn net.Conn, dirname string) {
 
 	}
 
-	if err != nil {
-		fmt.Println("Failed to write to connection")
-		os.Exit(1)
-	}
 }
 
 func main() {
