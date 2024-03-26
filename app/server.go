@@ -89,7 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 10; i++ {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
