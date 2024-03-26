@@ -60,7 +60,7 @@ func handleConn(conn net.Conn, dirname string) {
 			os.Exit(1)
 		}
 
-		response := fmt.Sprintf("%s\r\nContent-Type: text/plain\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
+		response := fmt.Sprintf("%s\r\nContent-Type: application/octet-stream\r\nContent-Length: %v\r\n\r\n%s\r\n\r\n", OK_RESPONSE, len(content), string(content))
 		fmt.Println(response)
 		_, err = conn.Write([]byte(response))
 
